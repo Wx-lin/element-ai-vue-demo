@@ -2,7 +2,8 @@
 import { ref, nextTick } from 'vue';
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
-// import { ElMarkdown } from 'element-ai-vue';
+// @ts-ignore
+import { ElMarkdown } from 'element-ai-vue'
 
 interface Message {
   id: number;
@@ -77,8 +78,7 @@ const sendMessage = async () => {
           :class="{ 'user-message': msg.isUser, 'bot-message': !msg.isUser }"
         >
           <div class="message-content">
-            <!-- <el-markdown :content="msg.text" /> -->
-            {{ msg.text }}
+            <ElMarkdown :content="msg.text" />
           </div>
         </div>
       </div>
@@ -105,7 +105,6 @@ const sendMessage = async () => {
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background-color: #f0f2f5;
   padding: 20px;
   box-sizing: border-box;
 }
@@ -156,7 +155,6 @@ const sendMessage = async () => {
   &.bot-message {
     justify-content: flex-start;
     .message-content {
-      background-color: #f4f4f5;
       color: #303133;
       border-radius: 12px 12px 12px 0;
     }
@@ -173,7 +171,5 @@ const sendMessage = async () => {
 
 .input-area {
   padding: 20px;
-  border-top: 1px solid #ebeef5;
-  background-color: white;
 }
 </style>
