@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, nextTick } from "vue";
+import { ref } from "vue";
 import axios from "axios";
 import { ElMessage } from "element-plus";
-// @ts-ignore
 import { ElASender, ElABubbleList, ElABubble } from "element-ai-vue";
+import { useThemeStore } from "../stores/theme";
+
+const themeStore = useThemeStore();
 
 interface Message {
   id: number;
@@ -59,30 +61,30 @@ const sendMessage = async () => {
   <div class="chat-page">
     <div class="chat-header">
       <span>DeepSeek AI</span>
+      <el-switch
+        v-model="themeStore.isDark"
+        active-text="Dark"
+        inactive-text="Light"
+        inline-prompt
+      />
     </div>
 
     <div class="chat-body">
-      <ElABubbleList class="bubble-list-container">
-        <div class="bubbles-wrapper">
-          <ElABubble
-            v-for="msg in messages"
-            :key="msg.id"
-            :content="msg.text"
-            :variant="msg.isUser ? 'user' : 'ai'"
-          />
-        </div>
+      <ElABubbleList>
+        <ElABubble
+          v-for="msg in messages"
+          :key="msg.id"
+          :content="msg.text"
+        />
       </ElABubbleList>
     </div>
 
     <div class="chat-footer">
-      <div class="sender-wrapper">
-        <ElASender
-          v-model="input"
-          placeholder="请输入消息..."
-          variant
-          @send="sendMessage"
-        />
-      </div>
+      <ElASender
+        v-model="input"
+        placeholder="请输入消息..."
+        @send="sendMessage"
+      />
       <div class="disclaimer">
         DeepSeek can make mistakes. Check important info.
       </div>
@@ -90,99 +92,31 @@ const sendMessage = async () => {
   </div>
 </template>
 
-<style scoped lang="scss">
+<style scoped>
 .chat-page {
-  width: 100vw;
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #ffffff; /* ChatGPT style white background */
-  overflow: hidden;
-  font-family: "Söhne", "ui-sans-serif", "system-ui", "-apple-system",
-    "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif,
-    "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji",
-    "Segoe UI Symbol", "Noto Color Emoji";
 }
 
 .chat-header {
-  height: 40px;
-  background-color: transparent; /* Cleaner header */
-  display: flex;
-  align-items: center;
-  padding: 10px 20px;
-  font-weight: 600;
-  font-size: 18px;
-  color: #202123;
-  flex-shrink: 0;
+  padding: 1rem;
+  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
 }
 
 .chat-body {
   flex: 1;
   overflow: hidden;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-.bubble-list-container {
-  height: 100%;
-  width: 100%;
-  overflow-y: auto;
-  /* 强制给 element-ai-vue 的列表容器设样式 */
-  :deep(.el-a-bubble-list) {
-    height: 100%;
-  }
-}
-
-.bubbles-wrapper {
-  padding: 24px 0;
-  max-width: 768px; /* ChatGPT standard width */
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  width: 100%;
 }
 
 .chat-footer {
-  background-color: transparent;
-  padding: 0 20px 20px;
-  flex-shrink: 0;
-  width: 100%;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.sender-wrapper {
-  max-width: 768px;
-  margin: 0 auto;
-  width: 100%;
-  background-color: #f4f4f4; /* Light gray input background */
-  border-radius: 26px;
-  padding: 8px; /* Padding for the input container */
-  box-shadow: none; /* Flat style initially */
-  transition: border-color 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
-
-  &:focus-within {
-    background-color: #f4f4f4;
-  }
-
-  /* Deep selector to customize ElASender styles if needed */
-  :deep(.el-a-sender) {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    --el-a-sender-bg-color: transparent;
-  }
+  padding: 1rem;
 }
 
 .disclaimer {
   text-align: center;
   font-size: 12px;
-  color: #6e6e80;
-  margin-top: 8px;
-  padding-bottom: 8px;
+  color: #909399;
+  margin-top: 0.5rem;
 }
 </style>
