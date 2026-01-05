@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
+import MainLayout from "../layouts/MainLayout.vue";
+import Home from "../views/Home.vue";
 import Chat from "../views/Chat.vue";
 
 const router = createRouter({
@@ -6,12 +8,19 @@ const router = createRouter({
   routes: [
     {
       path: "/",
-      redirect: "/chat",
-    },
-    {
-      path: "/chat",
-      name: "chat",
-      component: Chat,
+      component: MainLayout,
+      children: [
+        {
+          path: "",
+          name: "home",
+          component: Home,
+        },
+        {
+          path: "chat",
+          name: "chat",
+          component: Chat,
+        },
+      ],
     },
   ],
 });
