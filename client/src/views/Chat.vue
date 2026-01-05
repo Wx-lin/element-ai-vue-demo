@@ -71,11 +71,7 @@ const sendMessage = async () => {
 
     <div class="chat-body">
       <ElABubbleList>
-        <ElABubble
-          v-for="msg in messages"
-          :key="msg.id"
-          :content="msg.text"
-        />
+        <ElABubble v-for="msg in messages" :key="msg.id" :content="msg.text" />
       </ElABubbleList>
     </div>
 
