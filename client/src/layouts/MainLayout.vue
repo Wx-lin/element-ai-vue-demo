@@ -28,7 +28,7 @@ const toggleSidebar = () => {
       <!-- Logo Area -->
       <div class="sidebar-header">
         <div class="logo-icon" v-show="!isSidebarCollapsed">
-          <img style="width: 40px; height: 40px;" src="https://192.144.128.12/logo.svg" alt="Element AI" />
+          <img style="width: 40px; height: 40px;" src="https://element-ai-vue.com/logo.svg" alt="Element AI" />
         </div>
         <div class="sidebar-toggle" @click="toggleSidebar">
           <el-icon><Monitor /></el-icon>

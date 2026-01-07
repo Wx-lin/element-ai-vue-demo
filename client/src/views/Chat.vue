@@ -1,16 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import axios from "axios";
 import { ElMessage } from "element-plus";
-import { ElASender, ElABubble } from "element-ai-vue";
-import {
-  Setting,
-  Monitor,
-  Paperclip,
-  Box,
-  ArrowUp
-} from '@element-plus/icons-vue'
+import { ElASender, ElABubble, useTyperwriter } from "element-ai-vue";
 import { useThemeStore } from "../stores/theme";
 
 useThemeStore();
@@ -21,22 +14,57 @@ interface Message {
   id: number;
   text: string;
   isUser: boolean;
+  isTyping?: boolean;
 }
 
-const messages = ref<Message[]>([
-  {
-    id: 1,
-    text: "你好！我是 DeepSeek 聊天机器人，有什么可以帮你的吗？",
-    isUser: false,
-  },
-]);
+const messages = ref<Message[]>([]);
 const input = ref("");
 const isLoading = ref(false);
+
+const {
+  content: typingContent,
+  start,
+  stop,
+  setText,
+  getInfo,
+  status: typingStatus,
+} = useTyperwriter({
+  typingSpeed: 1,
+  interval: 20,
+});
+
+watch(typingContent, (newVal) => {
+  const lastMsg = messages.value[messages.value.length - 1];
+  if (lastMsg && !lastMsg.isUser && lastMsg.isTyping) {
+    lastMsg.text = newVal;
+    
+    // Check if typing is complete
+    const info = getInfo();
+    console.log(`Typing: ${newVal.length}/${info.fullText.length}`, { current: newVal, full: info.fullText });
+    
+    // if (newVal.length >= info.fullText.length) {
+    //   console.log("Typing complete, stopping...");
+    //   stop();
+    // }
+  }
+});
+
+watch(typingStatus, (newStatus) => {
+  if (newStatus === "stopped") {
+    const lastMsg = messages.value[messages.value.length - 1];
+    if (lastMsg && !lastMsg.isUser && lastMsg.isTyping) {
+      lastMsg.isTyping = false;
+      isLoading.value = false;
+    }
+  }
+});
 
 const sendMessage = async () => {
   if (!input.value.trim() || isLoading.value) return;
 
   const userText = input.value.trim();
+
+  console.log("Sending message:", userText);
   messages.value.push({
     id: Date.now(),
     text: userText,
@@ -50,9 +78,13 @@ const sendMessage = async () => {
     const response = await axios.post("/api/chat", { message: userText });
     messages.value.push({
       id: Date.now() + 1,
-      text: response.data.reply,
+      text: "",
       isUser: false,
+      isTyping: true,
     });
+    console.log("Got response:", response.data.reply);
+    setText(response.data.reply);
+    start();
   } catch (error: any) {
     console.error("Chat Error:", error);
     ElMessage.error(error.response?.data?.message || "发送失败，请稍后重试");
@@ -61,7 +93,6 @@ const sendMessage = async () => {
       text: "抱歉，出错了，请稍后再试。",
       isUser: false,
     });
-  } finally {
     isLoading.value = false;
   }
 };
@@ -81,16 +112,19 @@ onMounted(() => {
   <div class="chat-page">
     <div class="chat-body">
       <div class="bubbles-container">
-        <div 
-          v-for="msg in messages" 
-          :key="msg.id" 
+        <div
+          v-for="msg in messages"
+          :key="msg.id"
           class="message-wrapper"
           :class="{ 'is-user': msg.isUser }"
         >
-          <ElABubble 
-            :content="msg.text" 
+          <ElABubble
+            :content="msg.text"
             variant="filled"
             class="custom-bubble"
+            :is-markdown="!msg.isUser"
+            :placement="msg.isUser ? 'end' : 'start'"
+            :typing="msg.isTyping"
           />
         </div>
       </div>
@@ -98,7 +132,6 @@ onMounted(() => {
 
     <div class="chat-footer">
       <div class="input-container-wrapper">
-        <div class="input-counter">22</div>
         <ElASender
           v-model="input"
           placeholder=""
@@ -106,38 +139,10 @@ onMounted(() => {
           @send="sendMessage"
           :loading="isLoading"
         >
-          <template #prefix>
-             <div class="bottom-left-controls">
-               <div class="icon-btn circle-outline">
-                 <el-icon><Setting /></el-icon>
-               </div>
-               <div class="pill-btn">
-                 <el-icon><Monitor /></el-icon>
-                 <span>OK Computer</span>
-               </div>
-             </div>
-          </template>
-          
-          <template #suffix>
-            <div class="bottom-right-controls">
-              <span class="model-selector">K2 ▾</span>
-              <el-icon class="action-icon"><Paperclip /></el-icon>
-              <el-icon class="action-icon"><Box /></el-icon>
-              <div class="divider"></div>
-            </div>
-          </template>
-
-          <template #button>
-             <div class="send-btn-wrapper" @click="sendMessage">
-               <el-icon><ArrowUp /></el-icon>
-             </div>
-          </template>
         </ElASender>
       </div>
-      
-      <div class="disclaimer">
-        DeepSeek can make mistakes. Check important info.
-      </div>
+
+      <div class="disclaimer">AI can make mistakes. Check important info.</div>
     </div>
   </div>
 </template>
@@ -157,7 +162,7 @@ onMounted(() => {
   padding: 20px 0;
   display: flex;
   justify-content: center;
-  
+
   .bubbles-container {
     max-width: 800px;
     width: 100%;
@@ -171,11 +176,11 @@ onMounted(() => {
 .message-wrapper {
   display: flex;
   width: 100%;
-  
+
   &.is-user {
     justify-content: flex-end;
   }
-  
+
   :deep(.el-a-bubble) {
     max-width: 80%;
     border-radius: 12px;
@@ -202,7 +207,7 @@ onMounted(() => {
   border-radius: 16px;
   padding: 12px;
   transition: border-color 0.3s;
-  
+
   &:focus-within {
     border-color: var(--text-color-secondary);
   }
@@ -222,20 +227,20 @@ onMounted(() => {
   padding: 0;
   border: none;
   background: transparent;
-  
+
   .el-textarea__inner {
     padding: 24px 4px 40px 4px;
     min-height: 80px !important;
     font-size: 16px;
     color: var(--text-color);
-    box-shadow: none; 
+    box-shadow: none;
     resize: none;
-    
+
     &::placeholder {
       color: var(--text-color-secondary);
     }
   }
-  
+
   .el-a-sender__actions {
     display: flex;
     justify-content: space-between;
@@ -249,7 +254,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  
+
   .icon-btn {
     width: 28px;
     height: 28px;
@@ -261,13 +266,13 @@ onMounted(() => {
     color: var(--text-color-secondary);
     cursor: pointer;
     font-size: 14px;
-    
+
     &:hover {
       color: var(--text-color);
       border-color: var(--text-color);
     }
   }
-  
+
   .pill-btn {
     display: flex;
     align-items: center;
@@ -279,7 +284,7 @@ onMounted(() => {
     color: var(--text-color-secondary);
     cursor: pointer;
     height: 28px;
-    
+
     &:hover {
       color: var(--text-color);
       border-color: var(--text-color);
@@ -293,21 +298,25 @@ onMounted(() => {
   gap: 12px;
   margin-left: auto;
   margin-right: 12px;
-  
+
   .model-selector {
     font-size: 12px;
     color: var(--text-color-secondary);
     cursor: pointer;
-    &:hover { color: var(--text-color); }
+    &:hover {
+      color: var(--text-color);
+    }
   }
-  
+
   .action-icon {
     font-size: 18px;
     color: var(--text-color-secondary);
     cursor: pointer;
-    &:hover { color: var(--text-color); }
+    &:hover {
+      color: var(--text-color);
+    }
   }
-  
+
   .divider {
     width: 1px;
     height: 16px;
@@ -326,11 +335,11 @@ onMounted(() => {
   cursor: pointer;
   color: #000;
   transition: opacity 0.2s;
-  
+
   &:hover {
     opacity: 0.9;
   }
-  
+
   .el-icon {
     font-size: 16px;
     font-weight: bold;
