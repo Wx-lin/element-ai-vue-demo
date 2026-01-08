@@ -8,7 +8,7 @@ export class ChatService {
 
   constructor(private configService: ConfigService) {}
 
-  async chat(message: string) {
+  async chat(message: string): Promise<any> {
     const apiKey = this.configService.get<string>('DEEPSEEK_API_KEY');
     if (!apiKey) {
       throw new HttpException(
@@ -26,17 +26,18 @@ export class ChatService {
             { role: 'system', content: 'You are a helpful assistant.' },
             { role: 'user', content: message },
           ],
-          stream: false,
+          stream: true,
         },
         {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${apiKey}`,
           },
+          responseType: 'stream',
         },
       );
 
-      return { reply: response.data.choices[0].message.content };
+      return response.data;
     } catch (error) {
       console.error(
         'DeepSeek API Error:',

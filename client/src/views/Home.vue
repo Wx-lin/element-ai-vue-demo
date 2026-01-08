@@ -7,7 +7,6 @@ import {
   Iphone,
   DataAnalysis,
   MagicStick,
-  ArrowUp,
 } from "@element-plus/icons-vue";
 import { ElASender } from "element-ai-vue";
 

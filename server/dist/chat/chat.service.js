@@ -34,14 +34,15 @@ let ChatService = class ChatService {
                     { role: 'system', content: 'You are a helpful assistant.' },
                     { role: 'user', content: message },
                 ],
-                stream: false,
+                stream: true,
             }, {
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${apiKey}`,
                 },
+                responseType: 'stream',
             });
-            return { reply: response.data.choices[0].message.content };
+            return response.data;
         }
         catch (error) {
             console.error('DeepSeek API Error:', error.response?.data || error.message);

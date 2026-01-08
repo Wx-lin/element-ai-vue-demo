@@ -1,110 +1,3 @@
-<script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import axios from "axios";
-import { ElMessage } from "element-plus";
-import { ElASender, ElABubble, useTyperwriter } from "element-ai-vue";
-import { useThemeStore } from "../stores/theme";
-
-useThemeStore();
-const route = useRoute();
-const router = useRouter();
-
-interface Message {
-  id: number;
-  text: string;
-  isUser: boolean;
-  isTyping?: boolean;
-}
-
-const messages = ref<Message[]>([]);
-const input = ref("");
-const isLoading = ref(false);
-
-const {
-  content: typingContent,
-  start,
-  stop,
-  setText,
-  getInfo,
-  status: typingStatus,
-} = useTyperwriter({
-  typingSpeed: 1,
-  interval: 20,
-});
-
-watch(typingContent, (newVal) => {
-  const lastMsg = messages.value[messages.value.length - 1];
-  if (lastMsg && !lastMsg.isUser && lastMsg.isTyping) {
-    lastMsg.text = newVal;
-    
-    // Check if typing is complete
-    const info = getInfo();
-    console.log(`Typing: ${newVal.length}/${info.fullText.length}`, { current: newVal, full: info.fullText });
-    
-    // if (newVal.length >= info.fullText.length) {
-    //   console.log("Typing complete, stopping...");
-    //   stop();
-    // }
-  }
-});
-
-watch(typingStatus, (newStatus) => {
-  if (newStatus === "stopped") {
-    const lastMsg = messages.value[messages.value.length - 1];
-    if (lastMsg && !lastMsg.isUser && lastMsg.isTyping) {
-      lastMsg.isTyping = false;
-      isLoading.value = false;
-    }
-  }
-});
-
-const sendMessage = async (text: string) => { 
-  if (!text.trim() || isLoading.value) return;
-
-  messages.value.push({
-    id: Date.now(),
-    text: text.trim(),
-    isUser: true,
-  });
-
-  input.value = "";
-  isLoading.value = true;
-
-  try {
-    const response = await axios.post("/api/chat", { message: text.trim() });
-    messages.value.push({
-      id: Date.now() + 1,
-      text: "",
-      isUser: false,
-      isTyping: true,
-    });
-    console.log("Got response:", response.data.reply);
-    setText(response.data.reply);
-    start();
-  } catch (error: any) {
-    console.error("Chat Error:", error);
-    ElMessage.error(error.response?.data?.message || "发送失败，请稍后重试");
-    messages.value.push({
-      id: Date.now() + 1,
-      text: "抱歉，出错了，请稍后再试。",
-      isUser: false,
-    });
-    isLoading.value = false;
-  }
-};
-
-onMounted(() => {
-  const query = route.query.q as string;
-  if (query) {
-    input.value = query;
-    sendMessage(query);
-    // Clear query param
-    router.replace({ query: {} });
-  }
-});
-</script>
-
 <template>
   <div class="chat-page">
     <div class="chat-body">
@@ -121,7 +14,6 @@ onMounted(() => {
             class="custom-bubble"
             :is-markdown="!msg.isUser"
             :placement="msg.isUser ? 'end' : 'start'"
-            :typing="msg.isTyping"
           />
         </div>
       </div>
@@ -143,6 +35,116 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { ref, onMounted, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { ElMessage } from "element-plus";
+import { ElASender, ElABubble } from "element-ai-vue";
+import { fetchEventSource } from "@microsoft/fetch-event-source";
+import { useThemeStore } from "../stores/theme";
+
+useThemeStore();
+const route = useRoute();
+const router = useRouter();
+
+interface Message {
+  id: number;
+  text: string;
+  isUser: boolean;
+}
+
+const messages = ref<Message[]>([]);
+const input = ref("");
+const isLoading = ref(false);
+
+const typingOver = ref(true);
+
+const sendMessage = async (text: string) => {
+  if (!text.trim() || isLoading.value) return;
+
+  messages.value.push({
+    id: Date.now(),
+    text: text.trim(),
+    isUser: true,
+  });
+
+  input.value = "";
+  isLoading.value = true;
+
+  try {
+    messages.value.push({
+      id: Date.now() + 1,
+      text: "",
+      isUser: false,
+    });
+
+    const lastMsg = messages.value[messages.value.length - 1];
+    if (!lastMsg) throw new Error("Message initialization failed");
+
+    const ctrl = new AbortController();
+
+    await fetchEventSource("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message: text.trim() }),
+      signal: ctrl.signal,
+      onopen(response) {
+        console.log("Connection opened", response);
+        if (response.ok) {
+          return Promise.resolve();
+        } else {
+          return Promise.reject(
+            new Error(`Failed to send message: ${response.status}`)
+          );
+        }
+      },
+      onmessage(msg) {
+        if (msg.data === "[DONE]") {
+          console.log("Stream finished");
+          isLoading.value = false;
+          return;
+        }
+
+        try {
+          const parsed = JSON.parse(msg.data);
+          const content = parsed.choices[0]?.delta?.content || "";
+          if (content) {
+            lastMsg.text += content;
+          }
+        } catch (e) {
+          console.error("Error parsing JSON:", e);
+        }
+      },
+      onerror(err) {
+        console.error("Stream error:", err);
+        throw err;
+      },
+    });
+  } catch (error: any) {
+    console.error("Chat Error:", error);
+    ElMessage.error(error.message || "发送失败，请稍后重试");
+    messages.value.push({
+      id: Date.now() + 1,
+      text: "抱歉，出错了，请稍后再试。",
+      isUser: false,
+    });
+    isLoading.value = false;
+  }
+};
+
+onMounted(() => {
+  const query = route.query.q as string;
+  if (query) {
+    input.value = query;
+    sendMessage(query);
+    // Clear query param
+    router.replace({ query: {} });
+  }
+});
+</script>
 
 <style scoped lang="scss">
 .chat-page {
@@ -193,6 +195,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 12px;
+  background-color: var(--app-bg-color);
 }
 
 .input-container-wrapper {
@@ -351,6 +355,10 @@ html.dark .send-btn-wrapper {
 html:not(.dark) .send-btn-wrapper {
   background-color: #000;
   color: #fff;
+}
+
+.custom-sender {
+  width: 100%;
 }
 
 .disclaimer {
