@@ -22,14 +22,14 @@ let ChatService = class ChatService {
     constructor(configService) {
         this.configService = configService;
     }
-    async chat(message) {
+    async chat(message, isReasoningEnabled = false) {
         const apiKey = this.configService.get('DEEPSEEK_API_KEY');
         if (!apiKey) {
             throw new common_1.HttpException('API Key not configured', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
         try {
             const response = await axios_1.default.post(this.apiUrl, {
-                model: 'deepseek-chat',
+                model: isReasoningEnabled ? 'deepseek-reasoner' : 'deepseek-chat',
                 messages: [
                     { role: 'system', content: 'You are a helpful assistant.' },
                     { role: 'user', content: message },

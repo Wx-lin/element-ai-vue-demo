@@ -12,6 +12,7 @@ import { ElASender } from "element-ai-vue";
 
 const router = useRouter();
 const input = ref("");
+const enableDeepThinking = ref(false);
 
 const handleSend = async (text: string) => {
   if (!text.trim()) return;
@@ -35,6 +36,21 @@ const handleSend = async (text: string) => {
             class="custom-sender"
             @send="handleSend"
           >
+            <template #prefix>
+              <div 
+                class="deep-thinking-toggle" 
+                :class="{ active: enableDeepThinking }"
+                @click.stop="enableDeepThinking = !enableDeepThinking"
+                @mousedown.stop
+                title="Toggle Deep Thinking"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"></path>
+                  <path d="M12 16v-4"></path>
+                  <path d="M12 8h.01"></path>
+                </svg>
+              </div>
+            </template>
           </ElASender>
         </div>
       </div>
@@ -144,9 +160,36 @@ const handleSend = async (text: string) => {
   border-radius: 16px;
   padding: 8px;
   transition: border-color 0.3s;
+  position: relative;
 
   &:focus-within {
     border-color: var(--text-color-secondary);
+  }
+}
+
+.deep-thinking-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-color-secondary);
+  transition: all 0.2s;
+  margin-right: 8px;
+  position: relative;
+  z-index: 20;
+  pointer-events: auto;
+  
+  &:hover {
+    background-color: var(--fill-color-light);
+    color: var(--text-color);
+  }
+  
+  &.active {
+    color: var(--el-color-primary);
+    background-color: var(--el-color-primary-light-9);
   }
 }
 

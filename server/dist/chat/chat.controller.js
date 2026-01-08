@@ -20,8 +20,8 @@ let ChatController = class ChatController {
     constructor(chatService) {
         this.chatService = chatService;
     }
-    async chat(message, res) {
-        const stream = await this.chatService.chat(message);
+    async chat(message, isReasoningEnabled, res) {
+        const stream = await this.chatService.chat(message, isReasoningEnabled);
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
@@ -32,9 +32,10 @@ exports.ChatController = ChatController;
 __decorate([
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)('message')),
-    __param(1, (0, common_1.Res)()),
+    __param(1, (0, common_1.Body)('isReasoningEnabled')),
+    __param(2, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, Boolean, Object]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "chat", null);
 exports.ChatController = ChatController = __decorate([

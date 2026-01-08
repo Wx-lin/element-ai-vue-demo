@@ -8,7 +8,7 @@ export class ChatService {
 
   constructor(private configService: ConfigService) {}
 
-  async chat(message: string): Promise<any> {
+  async chat(message: string, isReasoningEnabled: boolean = false): Promise<any> {
     const apiKey = this.configService.get<string>('DEEPSEEK_API_KEY');
     if (!apiKey) {
       throw new HttpException(
@@ -21,7 +21,7 @@ export class ChatService {
       const response = await axios.post(
         this.apiUrl,
         {
-          model: 'deepseek-chat',
+          model: isReasoningEnabled ? 'deepseek-reasoner' : 'deepseek-chat',
           messages: [
             { role: 'system', content: 'You are a helpful assistant.' },
             { role: 'user', content: message },

@@ -7,8 +7,12 @@ export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
   @Post()
-  async chat(@Body('message') message: string, @Res() res: Response) {
-    const stream = await this.chatService.chat(message);
+  async chat(
+    @Body('message') message: string,
+    @Body('isReasoningEnabled') isReasoningEnabled: boolean,
+    @Res() res: Response,
+  ) {
+    const stream = await this.chatService.chat(message, isReasoningEnabled);
     
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
