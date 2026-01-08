@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref } from "vue";
 import {
   Plus,
   Monitor,
@@ -9,26 +9,30 @@ import {
   Clock,
   Moon,
   Sunny,
-  Link
-} from '@element-plus/icons-vue'
-import { useThemeStore } from '../stores/theme'
+  Link,
+} from "@element-plus/icons-vue";
+import { useThemeStore } from "../stores/theme";
 
-const themeStore = useThemeStore()
-const isSidebarCollapsed = ref(false)
+const themeStore = useThemeStore();
+const isSidebarCollapsed = ref(false);
 
 const toggleSidebar = () => {
-  isSidebarCollapsed.value = !isSidebarCollapsed.value
-}
+  isSidebarCollapsed.value = !isSidebarCollapsed.value;
+};
 </script>
 
 <template>
   <div class="app-layout">
     <!-- Left Sidebar -->
-    <aside class="sidebar" :class="{ 'collapsed': isSidebarCollapsed }">
+    <aside class="sidebar" :class="{ collapsed: isSidebarCollapsed }">
       <!-- Logo Area -->
       <div class="sidebar-header">
         <div class="logo-icon" v-show="!isSidebarCollapsed">
-          <img style="width: 40px; height: 40px;" src="https://element-ai-vue.com/logo.svg" alt="Element AI" />
+          <img
+            style="width: 40px; height: 40px"
+            src="https://element-ai-vue.com/logo.svg"
+            alt="Element AI"
+          />
         </div>
         <div class="sidebar-toggle" @click="toggleSidebar">
           <el-icon><Monitor /></el-icon>
@@ -37,7 +41,11 @@ const toggleSidebar = () => {
 
       <!-- New Chat Button -->
       <div class="new-chat-btn">
-        <el-button class="btn-block" round :class="{ 'icon-only': isSidebarCollapsed }">
+        <el-button
+          class="btn-block"
+          round
+          :class="{ 'icon-only': isSidebarCollapsed }"
+        >
           <el-icon :class="{ 'mr-2': !isSidebarCollapsed }"><Plus /></el-icon>
           <template v-if="!isSidebarCollapsed">
             新建会话
@@ -75,17 +83,22 @@ const toggleSidebar = () => {
       <!-- Bottom Utils -->
       <div class="sidebar-footer">
         <div class="nav-item" @click="themeStore.toggleTheme">
-           <el-icon v-if="themeStore.isDark"><Moon /></el-icon>
-           <el-icon v-else><Sunny /></el-icon>
-           <span v-show="!isSidebarCollapsed">
-             {{ themeStore.isDark ? '深色模式' : '浅色模式' }}
-           </span>
+          <el-icon v-if="themeStore.isDark"><Moon /></el-icon>
+          <el-icon v-else><Sunny /></el-icon>
+          <span v-show="!isSidebarCollapsed">
+            {{ themeStore.isDark ? "深色模式" : "浅色模式" }}
+          </span>
         </div>
-        
-        <div class="nav-item">
+
+        <a
+          class="nav-item"
+          href="https://element-ai-vue.com/zh/"
+          target="_blank"
+          style="text-decoration: none"
+        >
           <el-icon><Link /></el-icon>
           <span v-show="!isSidebarCollapsed">官网地址</span>
-        </div>
+        </a>
       </div>
     </aside>
 
@@ -119,24 +132,28 @@ const toggleSidebar = () => {
   &.collapsed {
     width: 80px;
     align-items: center;
-    
+
     .sidebar-header {
       justify-content: center;
       padding: 0;
-      .logo-icon { display: none; }
+      .logo-icon {
+        display: none;
+      }
     }
-    
+
     .new-chat-btn .btn-block {
       padding: 10px;
       justify-content: center;
-      &.icon-only { width: 44px; }
+      &.icon-only {
+        width: 44px;
+      }
     }
-    
+
     .nav-item {
       justify-content: center;
       padding: 10px;
     }
-    
+
     .sidebar-footer {
       align-items: center;
     }
@@ -160,7 +177,7 @@ const toggleSidebar = () => {
       font-weight: bold;
       color: var(--text-color);
     }
-    
+
     .sidebar-toggle {
       color: var(--text-color-secondary);
       cursor: pointer;
@@ -170,7 +187,7 @@ const toggleSidebar = () => {
       width: 32px;
       height: 32px;
       border-radius: 4px;
-      
+
       &:hover {
         background-color: var(--item-hover-bg);
         color: var(--text-color);
@@ -191,13 +208,13 @@ const toggleSidebar = () => {
       transition: background-color 0.2s;
       display: flex;
       align-items: center;
-      
+
       &:hover {
         background-color: var(--card-hover-bg);
       }
 
       .shortcut {
-        margin-left: auto;
+        margin-left: 10px;
         font-size: 12px;
         color: var(--text-color-secondary);
         background: var(--app-bg-color);

@@ -7,9 +7,6 @@ import {
   Iphone,
   DataAnalysis,
   MagicStick,
-  Paperclip,
-  Setting,
-  Box,
   ArrowUp,
 } from "@element-plus/icons-vue";
 import { ElASender } from "element-ai-vue";
@@ -17,9 +14,9 @@ import { ElASender } from "element-ai-vue";
 const router = useRouter();
 const input = ref("");
 
-const handleSend = () => {
-  if (!input.value.trim()) return;
-  router.push({ name: "chat", query: { q: input.value } });
+const handleSend = async (text: string) => {
+  if (!text.trim()) return;
+  router.push({ name: "chat", query: { q: text.trim() } });
 };
 </script>
 
@@ -27,7 +24,7 @@ const handleSend = () => {
   <div class="home-page">
     <div class="content-wrapper">
       <!-- Title -->
-      <h1 class="main-title">Element AI</h1>
+      <h1 class="main-title">Element AI Vue</h1>
 
       <!-- Input Area -->
       <div class="input-section">
@@ -39,11 +36,6 @@ const handleSend = () => {
             class="custom-sender"
             @send="handleSend"
           >
-            <template #button>
-              <div class="send-btn-wrapper" @click="handleSend">
-                <el-icon><ArrowUp /></el-icon>
-              </div>
-            </template>
           </ElASender>
         </div>
       </div>

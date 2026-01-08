@@ -59,15 +59,12 @@ watch(typingStatus, (newStatus) => {
   }
 });
 
-const sendMessage = async () => {
-  if (!input.value.trim() || isLoading.value) return;
+const sendMessage = async (text: string) => { 
+  if (!text.trim() || isLoading.value) return;
 
-  const userText = input.value.trim();
-
-  console.log("Sending message:", userText);
   messages.value.push({
     id: Date.now(),
-    text: userText,
+    text: text.trim(),
     isUser: true,
   });
 
@@ -75,7 +72,7 @@ const sendMessage = async () => {
   isLoading.value = true;
 
   try {
-    const response = await axios.post("/api/chat", { message: userText });
+    const response = await axios.post("/api/chat", { message: text.trim() });
     messages.value.push({
       id: Date.now() + 1,
       text: "",
@@ -101,7 +98,7 @@ onMounted(() => {
   const query = route.query.q as string;
   if (query) {
     input.value = query;
-    sendMessage();
+    sendMessage(query);
     // Clear query param
     router.replace({ query: {} });
   }
