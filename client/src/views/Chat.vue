@@ -1,12 +1,19 @@
 <template>
-  <div class="chat-page">
-    <div class="chat-body">
-      <div class="bubbles-container">
-        <div
+  <main class="chat-page" role="main" aria-label="聊天页面">
+    <section class="chat-body" aria-label="聊天记录">
+      <div
+        class="bubbles-container"
+        role="log"
+        aria-live="polite"
+        aria-label="聊天消息列表"
+      >
+        <article
           v-for="msg in messages"
           :key="msg.id"
           class="message-wrapper"
           :class="{ 'is-user': msg.isUser }"
+          :aria-label="msg.isUser ? '用户消息' : 'AI回复'"
+          role="article"
         >
           <div
             v-if="!msg.isUser && msg.reasoning_content"
@@ -26,11 +33,11 @@
             :is-markdown="!msg.isUser"
             :placement="msg.isUser ? 'end' : 'start'"
           />
-        </div>
+        </article>
       </div>
-    </div>
+    </section>
 
-    <div class="chat-footer">
+    <footer class="chat-footer" role="contentinfo" aria-label="消息输入区域">
       <div class="input-container-wrapper">
         <ElASender
           v-model="input"
@@ -39,46 +46,123 @@
           @send="sendMessage"
           :loading="isLoading"
         >
+          <template #top v-if="uploadedFiles.length > 0">
+            <div class="uploaded-files-preview">
+              <ElAFilesCard
+                v-model="uploadedFiles"
+                @update:modelValue="uploadedFiles = $event"
+              />
+            </div>
+          </template>
+
           <template #prefix>
             <div
-              class="deep-thinking-toggle"
-              :class="{ active: enableDeepThinking }"
-              @click.stop="enableDeepThinking = !enableDeepThinking"
-              @mousedown.stop
-              title="Toggle Deep Thinking"
+              class="sender-controls"
+              role="toolbar"
+              aria-label="消息发送选项"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+              <button
+                class="deep-thinking-toggle"
+                :class="{ active: enableDeepThinking }"
+                @click.stop="enableDeepThinking = !enableDeepThinking"
+                @mousedown.stop
+                type="button"
+                :aria-label="
+                  enableDeepThinking ? '关闭深度思考' : '开启深度思考'
+                "
+                :aria-pressed="enableDeepThinking"
               >
-                <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"></path>
-                <path d="M12 16v-4"></path>
-                <path d="M12 8h.01"></path>
-              </svg>
+                <SvgIcon name="thinking" :size="20" />
+              </button>
+            </div>
+          </template>
+
+          <template #suffix>
+            <div class="file-upload-controls">
+              <button
+                class="file-upload-toggle"
+                @click.stop="toggleFileUpload"
+                @mousedown.stop
+                type="button"
+                aria-label="上传文件"
+              >
+                <SvgIcon name="image-upload" :size="20" />
+              </button>
             </div>
           </template>
         </ElASender>
       </div>
 
-      <div class="disclaimer">AI can make mistakes. Check important info.</div>
+      <p class="disclaimer" role="note" aria-label="免责声明">
+        AI can make mistakes. Check important info.
+      </p>
+    </footer>
+
+    <!-- 文件上传弹层 -->
+    <div
+      v-if="showFileUpload"
+      class="file-upload-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="upload-modal-title"
+      @click="showFileUpload = false"
+    >
+      <div class="file-upload-modal" @click.stop>
+        <header class="file-upload-header">
+          <h3 id="upload-modal-title">上传文件</h3>
+          <button
+            @click="showFileUpload = false"
+            class="close-btn"
+            type="button"
+            aria-label="关闭上传对话框"
+          >
+            <el-icon :size="20">
+              <Close />
+            </el-icon>
+          </button>
+        </header>
+        <section class="file-upload-content" aria-label="文件上传区域">
+          <ElADragUpload
+            v-model="uploadedFiles"
+            :multiple="false"
+            :accept="['image/jpeg', 'image/png', 'image/gif', 'image/webp']"
+            :maxFileLength="1"
+            :fileSizeLimit="10 * 1024 * 1024"
+            @onUpload="handleFileUpload"
+            @onErrorMessage="handleFileError"
+          >
+            <div class="upload-area">
+              <el-icon :size="48">
+                <UploadFilled />
+              </el-icon>
+              <p class="upload-text">拖拽图片到这里，或点击上传</p>
+              <p class="upload-hint">
+                支持 JPG、PNG、GIF、WebP 格式，最大 10MB
+              </p>
+            </div>
+          </ElADragUpload>
+        </section>
+      </div>
     </div>
-  </div>
+  </main>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { ElASender, ElABubble, ElAThinking } from "element-ai-vue";
+import {
+  ElASender,
+  ElABubble,
+  ElAThinking,
+  ElADragUpload,
+  ElAFilesCard,
+  type FilesUploadItem,
+} from "element-ai-vue";
+import { Close, UploadFilled } from "@element-plus/icons-vue";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { useThemeStore } from "../stores/theme";
+import SvgIcon from "../components/SvgIcon.vue";
 
 useThemeStore();
 const route = useRoute();
@@ -89,26 +173,91 @@ interface Message {
   text: string;
   isUser: boolean;
   reasoning_content?: string;
+  attachedFile?: {
+    fileId: string;
+    fileName: string;
+    fileUrl: string;
+  };
 }
 
 const messages = ref<Message[]>([]);
 const input = ref("");
 const isLoading = ref(false);
 const enableDeepThinking = ref(false);
+const uploadedFiles = ref<FilesUploadItem[]>([]);
+const showFileUpload = ref(false);
 
-const typingOver = ref(true);
+// 文件上传相关函数
+const handleFileUpload = async (files: FilesUploadItem[]) => {
+  const file = files[0]; // 只处理第一个文件
+  if (!file || !file.elementFile) return;
+
+  try {
+    const formData = new FormData();
+    formData.append("file", file.elementFile);
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error("文件上传失败");
+    }
+
+    const result = await response.json();
+
+    // 更新文件状态为成功
+    file.uploadingStatus = "success";
+    file.fileId = result.data.fileId;
+    file.fileUrl = result.data.fileUrl;
+    file.progress = 100;
+
+    uploadedFiles.value = [file]; // 只保留一个文件
+
+    ElMessage.success("文件上传成功");
+  } catch (error: any) {
+    if (file) {
+      file.uploadingStatus = "error";
+    }
+    ElMessage.error(error.message || "文件上传失败");
+  }
+};
+
+const handleFileError = (error: any) => {
+  ElMessage.error(error.message || "文件处理失败");
+};
+
+const toggleFileUpload = () => {
+  showFileUpload.value = !showFileUpload.value;
+};
 
 const sendMessage = async (text: string) => {
   if (!text.trim() || isLoading.value) return;
+
+  // 获取已上传的文件信息
+  const attachedFile = uploadedFiles.value.find(
+    (f) => f.uploadingStatus === "success"
+  );
 
   messages.value.push({
     id: Date.now(),
     text: text.trim(),
     isUser: true,
+    attachedFile: attachedFile
+      ? {
+          fileId: attachedFile.fileId,
+          fileName: attachedFile.fileName,
+          fileUrl: attachedFile.fileUrl,
+        }
+      : undefined,
   });
 
   input.value = "";
   isLoading.value = true;
+
+  // 清除已上传的文件
+  uploadedFiles.value = [];
 
   try {
     messages.value.push({
@@ -131,6 +280,7 @@ const sendMessage = async (text: string) => {
       body: JSON.stringify({
         message: text.trim(),
         isReasoningEnabled: enableDeepThinking.value,
+        attachedFile: attachedFile,
       }),
       signal: ctrl.signal,
       onopen(response) {
@@ -267,7 +417,7 @@ onMounted(() => {
   background-color: var(--input-bg-color);
   border: 1px solid var(--input-border-color);
   border-radius: 16px;
-  padding: 12px;
+  padding: 20px;
   transition: border-color 0.3s;
 
   &:focus-within {
@@ -284,6 +434,12 @@ onMounted(() => {
   }
 }
 
+.sender-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .deep-thinking-toggle {
   display: flex;
   align-items: center;
@@ -291,20 +447,73 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   border-radius: 8px;
+  border: none;
+  background: transparent;
   cursor: pointer;
   color: var(--text-color-secondary);
-  transition: all 0.2s;
-  margin-right: 8px;
+  transition: all 0.2s ease;
   position: relative;
   z-index: 20;
   pointer-events: auto;
 
   &:hover {
     color: var(--text-color);
+    background-color: var(--fill-color-light);
+    transform: translateY(-1px);
   }
 
   &.active {
     color: var(--el-color-primary);
+    background-color: var(--el-color-primary-light-9);
+    box-shadow: 0 2px 4px rgba(64, 158, 255, 0.2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--el-color-primary);
+    outline-offset: 2px;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.file-upload-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-upload-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-color-secondary);
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 20;
+  pointer-events: auto;
+
+  &:hover {
+    color: var(--text-color);
+    background-color: var(--fill-color-light);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--el-color-primary);
+    outline-offset: 2px;
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 }
 
@@ -315,7 +524,7 @@ onMounted(() => {
   background: transparent;
 
   .el-textarea__inner {
-    padding: 24px 4px 40px 4px;
+    padding: 32px 12px 48px 12px;
     min-height: 80px !important;
     font-size: 16px;
     color: var(--text-color);
@@ -496,7 +705,113 @@ html:not(.dark) .send-btn-wrapper {
   margin-top: 12px;
 }
 
-:deep(.el-ai-thinking__content ) {
+:deep(.el-ai-thinking__content) {
   padding: 15px;
+}
+
+// 文件上传弹层样式
+.file-upload-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.file-upload-modal {
+  background-color: var(--app-bg-color);
+  border-radius: 16px;
+  padding: 24px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  border: 1px solid var(--input-border-color);
+}
+
+.file-upload-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+
+  h3 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-color-secondary);
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+
+    &:hover {
+      color: var(--text-color);
+      background-color: var(--fill-color-light);
+    }
+  }
+}
+
+.file-upload-content {
+  :deep(.el-a-drag-upload) {
+    border: 2px dashed var(--input-border-color);
+    border-radius: 12px;
+    background-color: var(--input-bg-color);
+    transition: border-color 0.3s;
+
+    &:hover {
+      border-color: var(--el-color-primary);
+    }
+  }
+}
+
+.upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  text-align: center;
+
+  .el-icon {
+    color: var(--text-color-secondary);
+    margin-bottom: 16px;
+  }
+
+  .upload-text {
+    color: var(--text-color);
+    font-size: 16px;
+    font-weight: 500;
+    margin: 0 0 8px 0;
+  }
+
+  .upload-hint {
+    color: var(--text-color-secondary);
+    font-size: 14px;
+    margin: 0;
+  }
+}
+
+// 文件预览样式
+.uploaded-files-preview {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--input-border-color);
+  margin-bottom: 12px;
+
+  :deep(.el-a-files-card) {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+  }
 }
 </style>

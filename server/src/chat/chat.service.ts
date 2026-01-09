@@ -8,7 +8,7 @@ export class ChatService {
 
   constructor(private configService: ConfigService) {}
 
-  async chat(message: string, isReasoningEnabled: boolean = false): Promise<any> {
+  async chat(message: string, isReasoningEnabled: boolean = false, attachedFile?: any): Promise<any> {
     const apiKey = this.configService.get<string>('DEEPSEEK_API_KEY');
     if (!apiKey) {
       throw new HttpException(
@@ -18,13 +18,24 @@ export class ChatService {
     }
 
     try {
+      // 构建用户消息内容
+      let userContent = message;
+      if (attachedFile) {
+        userContent += `\n\n[附件: ${attachedFile.fileName}]`;
+        userContent += `\n图片URL: ${attachedFile.fileUrl}`;
+        userContent += `\n请分析这张图片并回答我的问题。`;
+      }
+
       const response = await axios.post(
         this.apiUrl,
         {
           model: isReasoningEnabled ? 'deepseek-reasoner' : 'deepseek-chat',
           messages: [
-            { role: 'system', content: 'You are a helpful assistant.' },
-            { role: 'user', content: message },
+            {
+              role: 'system',
+              content: 'You are a helpful assistant. When users upload images, please analyze them and provide helpful insights.'
+            },
+            { role: 'user', content: userContent },
           ],
           stream: true,
         },

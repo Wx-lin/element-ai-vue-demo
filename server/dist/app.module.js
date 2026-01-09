@@ -12,6 +12,7 @@ const serve_static_1 = require("@nestjs/serve-static");
 const config_1 = require("@nestjs/config");
 const path_1 = require("path");
 const chat_module_1 = require("./chat/chat.module");
+const upload_module_1 = require("./upload/upload.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -24,7 +25,12 @@ exports.AppModule = AppModule = __decorate([
             serve_static_1.ServeStaticModule.forRoot({
                 rootPath: (0, path_1.join)(__dirname, '..', '..', 'client'),
             }),
+            serve_static_1.ServeStaticModule.forRoot({
+                rootPath: (0, path_1.join)(process.cwd(), 'uploads'),
+                serveRoot: '/uploads',
+            }),
             chat_module_1.ChatModule,
+            upload_module_1.UploadModule,
         ],
         controllers: [],
         providers: [],

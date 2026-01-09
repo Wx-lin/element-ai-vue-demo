@@ -3,5 +3,5 @@ export declare class ChatService {
     private configService;
     private readonly apiUrl;
     constructor(configService: ConfigService);
-    chat(message: string, isReasoningEnabled?: boolean): Promise<any>;
+    chat(message: string, isReasoningEnabled?: boolean, attachedFile?: any): Promise<any>;
 }

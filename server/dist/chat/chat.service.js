@@ -22,17 +22,26 @@ let ChatService = class ChatService {
     constructor(configService) {
         this.configService = configService;
     }
-    async chat(message, isReasoningEnabled = false) {
+    async chat(message, isReasoningEnabled = false, attachedFile) {
         const apiKey = this.configService.get('DEEPSEEK_API_KEY');
         if (!apiKey) {
             throw new common_1.HttpException('API Key not configured', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
         try {
+            let userContent = message;
+            if (attachedFile) {
+                userContent += `\n\n[附件: ${attachedFile.fileName}]`;
+                userContent += `\n图片URL: ${attachedFile.fileUrl}`;
+                userContent += `\n请分析这张图片并回答我的问题。`;
+            }
             const response = await axios_1.default.post(this.apiUrl, {
                 model: isReasoningEnabled ? 'deepseek-reasoner' : 'deepseek-chat',
                 messages: [
-                    { role: 'system', content: 'You are a helpful assistant.' },
-                    { role: 'user', content: message },
+                    {
+                        role: 'system',
+                        content: 'You are a helpful assistant. When users upload images, please analyze them and provide helpful insights.'
+                    },
+                    { role: 'user', content: userContent },
                 ],
                 stream: true,
             }, {

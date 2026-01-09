@@ -10,10 +10,11 @@ export class ChatController {
   async chat(
     @Body('message') message: string,
     @Body('isReasoningEnabled') isReasoningEnabled: boolean,
+    @Body('attachedFile') attachedFile: any,
     @Res() res: Response,
   ) {
-    const stream = await this.chatService.chat(message, isReasoningEnabled);
-    
+    const stream = await this.chatService.chat(message, isReasoningEnabled, attachedFile);
+
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
