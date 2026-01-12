@@ -2,10 +2,6 @@
 import { ref } from "vue";
 import {
   Plus,
-  Monitor,
-  Search,
-  DataAnalysis,
-  Reading,
   Clock,
   Moon,
   Sunny,
@@ -34,8 +30,19 @@ const toggleSidebar = () => {
             alt="Element AI"
           />
         </div>
-        <div class="sidebar-toggle" @click="toggleSidebar">
-          <el-icon><Monitor /></el-icon>
+        <div class="sidebar-toggle" @click="toggleSidebar" v-show="!isSidebarCollapsed">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 1024 1024"
+            class="zhedie-icon"
+          >
+            <path
+              d="M725.333333 132.266667A166.4 166.4 0 0 1 891.733333 298.666667v426.666666c0 91.904-74.496 166.4-166.4 166.4H298.666667A166.442667 166.442667 0 0 1 132.266667 725.333333V298.666667A166.4 166.4 0 0 1 298.666667 132.266667h426.666666z m-281.6 682.666666H725.333333a89.6 89.6 0 0 0 89.6-89.6V298.666667A89.6 89.6 0 0 0 725.333333 209.066667h-281.6v605.866666zM298.666667 209.066667A89.6 89.6 0 0 0 209.066667 298.666667v426.666666c0 49.493333 40.106667 89.6 89.6 89.6h68.266666V209.066667H298.666667z"
+              fill="currentColor"
+            />
+          </svg>
         </div>
       </div>
 
@@ -57,22 +64,6 @@ const toggleSidebar = () => {
       <!-- Navigation -->
       <nav class="sidebar-nav">
         <div class="nav-item active">
-          <el-icon><Monitor /></el-icon>
-          <span v-show="!isSidebarCollapsed">OK Computer</span>
-        </div>
-        <div class="nav-item">
-          <el-icon><Search /></el-icon>
-          <span v-show="!isSidebarCollapsed">深度研究</span>
-        </div>
-        <div class="nav-item">
-          <el-icon><Reading /></el-icon>
-          <span v-show="!isSidebarCollapsed">PPT</span>
-        </div>
-        <div class="nav-item">
-          <el-icon><DataAnalysis /></el-icon>
-          <span v-show="!isSidebarCollapsed">Kimi Code</span>
-        </div>
-        <div class="nav-item">
           <el-icon><Clock /></el-icon>
           <span v-show="!isSidebarCollapsed">历史会话</span>
         </div>
@@ -104,6 +95,21 @@ const toggleSidebar = () => {
 
     <!-- Main Content -->
     <main class="main-content">
+      <!-- Collapsed Sidebar Toggle Button -->
+      <div class="collapsed-toggle-btn" @click="toggleSidebar" v-show="isSidebarCollapsed">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 1024 1024"
+          class="zhedie-icon"
+        >
+          <path
+            d="M725.333333 132.266667A166.4 166.4 0 0 1 891.733333 298.666667v426.666666c0 91.904-74.496 166.4-166.4 166.4H298.666667A166.442667 166.442667 0 0 1 132.266667 725.333333V298.666667A166.4 166.4 0 0 1 298.666667 132.266667h426.666666z m-281.6 682.666666H725.333333a89.6 89.6 0 0 0 89.6-89.6V298.666667A89.6 89.6 0 0 0 725.333333 209.066667h-281.6v605.866666zM298.666667 209.066667A89.6 89.6 0 0 0 209.066667 298.666667v426.666666c0 49.493333 40.106667 89.6 89.6 89.6h68.266666V209.066667H298.666667z"
+            fill="currentColor"
+          />
+        </svg>
+      </div>
       <router-view />
     </main>
   </div>
@@ -130,33 +136,10 @@ const toggleSidebar = () => {
   transition: width 0.3s ease, background-color 0.3s, border-color 0.3s;
 
   &.collapsed {
-    width: 80px;
-    align-items: center;
-
-    .sidebar-header {
-      justify-content: center;
-      padding: 0;
-      .logo-icon {
-        display: none;
-      }
-    }
-
-    .new-chat-btn .btn-block {
-      padding: 10px;
-      justify-content: center;
-      &.icon-only {
-        width: 44px;
-      }
-    }
-
-    .nav-item {
-      justify-content: center;
-      padding: 10px;
-    }
-
-    .sidebar-footer {
-      align-items: center;
-    }
+    width: 0;
+    padding: 0;
+    border: none;
+    overflow: hidden;
   }
 
   .sidebar-header {
@@ -191,6 +174,12 @@ const toggleSidebar = () => {
       &:hover {
         background-color: var(--item-hover-bg);
         color: var(--text-color);
+      }
+
+      .zhedie-icon {
+        width: 20px;
+        height: 20px;
+        color: inherit;
       }
     }
   }
@@ -280,6 +269,34 @@ const toggleSidebar = () => {
   overflow: hidden;
   background-color: var(--app-bg-color);
   transition: background-color 0.3s;
+
+  .collapsed-toggle-btn {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 100;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-color-secondary);
+    background-color: transparent;
+    transition: background-color 0.2s, color 0.2s;
+
+    &:hover {
+      background-color: var(--item-hover-bg);
+      color: var(--text-color);
+    }
+
+    .zhedie-icon {
+      width: 20px;
+      height: 20px;
+      color: inherit;
+    }
+  }
 }
 
 .mr-2 {

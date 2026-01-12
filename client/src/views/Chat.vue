@@ -39,9 +39,10 @@
         v-model="input"
         placeholder="hi 我是 Element AI 尽管问我吧～"
         :loading="isLoading"
-        file-upload-position="suffix"
-        :use-button-wrapper="true"
-        :enable-error-message="true"
+        variant="updown"
+        file-upload-position="prefix"
+        :use-button-wrapper="false"
+        :enable-error-message="false"
         @send="sendMessage"
         @update:enableDeepThinking="enableDeepThinking = $event"
         @update:uploadedFiles="uploadedFiles = $event"
@@ -279,22 +280,14 @@ onMounted(() => {
   max-width: 800px;
 
   .input-container-wrapper {
-    padding: 20px;
+    padding: 16px;
   }
 
   .el-a-sender {
-    .el-textarea__inner {
-      padding: 32px 12px 48px 12px;
-      min-height: 80px !important;
-      font-size: 16px;
-    }
+    height: 100px;
 
-    .el-a-sender__actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      width: 100%;
-      padding: 0 4px;
+    .el-textarea__inner {
+      padding: 20px 12px;
     }
   }
 }
