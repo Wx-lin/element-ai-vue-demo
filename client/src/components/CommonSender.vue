@@ -9,7 +9,7 @@
         class="custom-sender"
         @send="handleSend"
       >
-        <template #top v-if="uploadedFiles.length > 0">
+        <template #action-list v-if="uploadedFiles.length > 0">
           <div class="uploaded-files-preview">
             <ElAFilesCard
               v-model="uploadedFiles"
@@ -19,97 +19,56 @@
         </template>
 
         <template #prefix>
-          <div
-            class="sender-controls"
-            role="toolbar"
-            aria-label="消息发送选项"
-          >
-            <component
-              :is="useButtonWrapper ? 'button' : 'div'"
-              :class="[
-                useButtonWrapper ? 'deep-thinking-toggle' : 'deep-thinking-icon',
-                { active: enableDeepThinking }
-              ]"
+          <div class="sender-controls" role="toolbar" aria-label="消息发送选项">
+            <button
+              v-if="useButtonWrapper"
+              class="deep-thinking-toggle"
+              :class="{ active: enableDeepThinking }"
               @click.stop="enableDeepThinking = !enableDeepThinking"
               @mousedown.stop
-              :type="useButtonWrapper ? 'button' : undefined"
-              :aria-label="useButtonWrapper ? (enableDeepThinking ? '关闭深度思考' : '开启深度思考') : undefined"
-              :aria-pressed="useButtonWrapper ? enableDeepThinking : undefined"
+              type="button"
+              :aria-label="enableDeepThinking ? '关闭深度思考' : '开启深度思考'"
+              :aria-pressed="enableDeepThinking"
             >
               <SvgIcon name="thinking" :size="20" />
-            </component>
-          </div>
-
-          <!-- 点击上传（prefix 位置） -->
-          <div v-if="fileUploadPosition === 'prefix'" class="file-upload-controls">
-            <ElAFilesUpload
-              v-model="uploadedFiles"
-              :multiple="false"
-              :accept="['image/jpeg', 'image/png', 'image/gif', 'image/webp']"
-              :maxFileLength="1"
-              :fileSizeLimit="10"
-              :onUpload="handleFileUpload"
-              :onErrorMessage="handleFileError"
+            </button>
+            <div
+              v-else
+              class="deep-thinking-icon"
+              :class="{ active: enableDeepThinking }"
+              @click.stop="enableDeepThinking = !enableDeepThinking"
+              @mousedown.stop
             >
-              <component
-                :is="useButtonWrapper ? 'button' : 'div'"
-                :class="useButtonWrapper ? 'file-upload-toggle' : 'file-upload-icon'"
-                :type="useButtonWrapper ? 'button' : undefined"
-                :aria-label="useButtonWrapper ? '上传文件' : undefined"
-              >
-                <SvgIcon name="image-upload" :size="useButtonWrapper ? 20 : 18" />
-              </component>
-            </ElAFilesUpload>
+              <SvgIcon name="thinking" :size="20" />
+            </div>
           </div>
-        </template>
 
-        <template #suffix v-if="fileUploadPosition === 'suffix'">
-          <!-- 点击上传（suffix 位置） -->
           <div class="file-upload-controls">
             <ElAFilesUpload
               v-model="uploadedFiles"
               :multiple="false"
-              :accept="['image/jpeg', 'image/png', 'image/gif', 'image/webp']"
+              :accept="['.pdf', '.docx', '.doc', '.png', '.jpg']"
               :maxFileLength="1"
               :fileSizeLimit="10"
               :onUpload="handleFileUpload"
               :onErrorMessage="handleFileError"
             >
-              <component
-                :is="useButtonWrapper ? 'button' : 'div'"
-                :class="useButtonWrapper ? 'file-upload-toggle' : 'file-upload-icon'"
-                :type="useButtonWrapper ? 'button' : undefined"
-                :aria-label="useButtonWrapper ? '上传文件' : undefined"
+              <button
+                v-if="useButtonWrapper"
+                class="file-upload-toggle"
+                type="button"
+                aria-label="上传文件"
               >
-                <SvgIcon name="image-upload" :size="useButtonWrapper ? 20 : 18" />
-              </component>
+                <SvgIcon name="image-upload" :size="20" />
+              </button>
+              <div v-else class="file-upload-icon">
+                <SvgIcon name="image-upload" :size="18" />
+              </div>
             </ElAFilesUpload>
           </div>
         </template>
       </ElASender>
     </div>
-
-    <!-- 拖拽上传区域 -->
-    <ElADragUpload
-      v-model="uploadedFiles"
-      :multiple="false"
-      :accept="['image/jpeg', 'image/png', 'image/gif', 'image/webp']"
-      :maxFileLength="1"
-      :fileSizeLimit="10"
-      :onUpload="handleFileUpload"
-      :onErrorMessage="handleFileError"
-      class="drag-upload-overlay"
-    >
-      <template #default>
-        <div class="drag-upload-content">
-          <el-icon :size="48">
-            <UploadFilled />
-          </el-icon>
-          <p class="upload-text">拖拽图片到这里上传</p>
-          <p class="upload-hint">支持 JPG、PNG、GIF、WebP 格式，最大 10MB</p>
-        </div>
-      </template>
-    </ElADragUpload>
   </div>
 </template>
 
@@ -117,13 +76,11 @@
 import { ref, computed, watch } from "vue";
 import {
   ElASender,
-  ElADragUpload,
   ElAFilesUpload,
   ElAFilesCard,
   type FilesUploadItem,
   type FilesUploadErrorParams,
 } from "element-ai-vue";
-import { UploadFilled } from "@element-plus/icons-vue";
 import SvgIcon from "./SvgIcon.vue";
 
 interface Props {
@@ -131,7 +88,6 @@ interface Props {
   placeholder?: string;
   variant?: "default" | "updown";
   loading?: boolean;
-  fileUploadPosition?: "prefix" | "suffix";
   useButtonWrapper?: boolean;
   enableErrorMessage?: boolean;
 }
@@ -145,9 +101,7 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   placeholder: "有什么可以帮助你的吗",
-  variant: undefined,
   loading: false,
-  fileUploadPosition: "prefix",
   useButtonWrapper: false,
   enableErrorMessage: false,
 });
@@ -223,12 +177,6 @@ const handleFileUpload = async (files: FilesUploadItem[]) => {
 // 文件错误处理
 const handleFileError = (error: FilesUploadErrorParams) => {
   console.error("文件处理失败:", error);
-
-  if (props.enableErrorMessage) {
-    import("element-plus").then(({ ElMessage }) => {
-      ElMessage.error(error.message);
-    });
-  }
 };
 
 const handleSend = (text: string) => {
@@ -397,10 +345,6 @@ defineExpose({
 }
 
 // 拖拽上传区域样式 - 让组件自己控制显示逻辑
-.drag-upload-overlay {
-  // 移除自定义样式，让ElADragUpload组件自己处理
-}
-
 .drag-upload-content {
   display: flex;
   flex-direction: column;
@@ -425,7 +369,6 @@ defineExpose({
     margin: 0;
   }
 }
-
 
 // 文件预览样式
 .uploaded-files-preview {
