@@ -6,7 +6,6 @@
         :placeholder="placeholder"
         :variant="variant"
         :loading="loading"
-        class="custom-sender"
         @send="handleSend"
       >
         <template #action-list v-if="uploadedFiles.length > 0">
