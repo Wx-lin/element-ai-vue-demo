@@ -1,20 +1,42 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import {
   Plus,
-  Clock,
   Moon,
   Sunny,
   Link,
 } from "@element-plus/icons-vue";
 import { useThemeStore } from "../stores/theme";
+import { useChatHistoryStore } from "../stores/chatHistory";
+import ChatHistoryList from "../components/ChatHistoryList.vue";
 
 const themeStore = useThemeStore();
+const chatHistoryStore = useChatHistoryStore();
+const router = useRouter();
+const route = useRoute();
 const isSidebarCollapsed = ref(false);
 
 const toggleSidebar = () => {
   isSidebarCollapsed.value = !isSidebarCollapsed.value;
 };
+
+const handleNewChat = () => {
+  // 如果当前在首页，不做任何处理
+  if (route.name === "home") {
+    return;
+  }
+  // 如果当前在聊天页面，跳转到首页
+  if (route.name === "chat") {
+    chatHistoryStore.currentConversationId = null;
+    router.push({ name: "home" });
+  }
+};
+
+onMounted(async () => {
+  // 初始化历史记录存储
+  await chatHistoryStore.init();
+});
 </script>
 
 <template>
@@ -52,6 +74,7 @@ const toggleSidebar = () => {
           class="btn-block"
           round
           :class="{ 'icon-only': isSidebarCollapsed }"
+          @click="handleNewChat"
         >
           <el-icon :class="{ 'mr-2': !isSidebarCollapsed }"><Plus /></el-icon>
           <template v-if="!isSidebarCollapsed">
@@ -62,11 +85,8 @@ const toggleSidebar = () => {
       </div>
 
       <!-- Navigation -->
-      <nav class="sidebar-nav">
-        <div class="nav-item active">
-          <el-icon><Clock /></el-icon>
-          <span v-show="!isSidebarCollapsed">历史会话</span>
-        </div>
+      <nav class="sidebar-nav" v-show="!isSidebarCollapsed">
+        <ChatHistoryList />
       </nav>
 
       <div class="sidebar-spacer"></div>

@@ -19,7 +19,10 @@
             v-if="!msg.isUser && msg.reasoning_content"
             class="thinking-container"
           >
-            <ElAThinking title="深度思考" style="margin-bottom: 30px">
+            <ElAThinking
+              title="深度思考"
+              style="margin-bottom: 30px; width: 800px"
+            >
               {{ msg.reasoning_content }}
             </ElAThinking>
           </div>
@@ -53,23 +56,21 @@
         AI can make mistakes. Check important info.
       </p>
     </footer>
-
   </main>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import {
-  ElABubble,
-  ElAThinking,
-  type FilesUploadItem,
-} from "element-ai-vue";
+import { ElABubble, ElAThinking, type FilesUploadItem } from "element-ai-vue";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { useThemeStore } from "../stores/theme";
+import { useChatHistoryStore } from "../stores/chatHistory";
+import { type ChatMessage } from "../utils/chatHistoryDB";
 import CommonSender from "../components/CommonSender.vue";
 
 useThemeStore();
+const chatHistoryStore = useChatHistoryStore();
 const route = useRoute();
 const router = useRouter();
 
@@ -92,15 +93,59 @@ const enableDeepThinking = ref(false);
 const uploadedFiles = ref<FilesUploadItem[]>([]);
 const senderRef = ref();
 
+// 将 Message 转换为 ChatMessage 并保存
+const saveMessageToHistory = async (message: Message) => {
+  const chatMessage: ChatMessage = {
+    id: message.id,
+    text: message.text,
+    isUser: message.isUser,
+    reasoning_content: message.reasoning_content,
+    attachedFile: message.attachedFile,
+    createdAt: Date.now(),
+  };
+
+  await chatHistoryStore.saveMessage(chatMessage);
+};
+
+// 保存所有消息到历史记录
+const saveAllMessagesToHistory = async () => {
+  if (messages.value.length === 0) return;
+
+  const chatMessages: ChatMessage[] = messages.value.map((msg) => ({
+    id: msg.id,
+    text: msg.text,
+    isUser: msg.isUser,
+    reasoning_content: msg.reasoning_content,
+    attachedFile: msg.attachedFile,
+    createdAt: Date.now(),
+  }));
+
+  if (chatHistoryStore.currentConversationId) {
+    await chatHistoryStore.updateConversationMessages(
+      chatHistoryStore.currentConversationId,
+      chatMessages
+    );
+  } else {
+    // 创建新会话
+    const title = messages.value[0]?.text.slice(0, 30) || "新会话";
+    await chatHistoryStore.createConversation(title, chatMessages);
+  }
+};
+
 const sendMessage = async (text: string) => {
   if (!text.trim() || isLoading.value) return;
+
+  // 如果没有当前会话，创建新会话
+  if (!chatHistoryStore.currentConversationId) {
+    await chatHistoryStore.createConversation(text.trim().slice(0, 30));
+  }
 
   // 获取已上传的文件信息
   const attachedFile = uploadedFiles.value.find(
     (f) => f.uploadingStatus === "success"
   );
 
-  messages.value.push({
+  const userMessage: Message = {
     id: Date.now(),
     text: text.trim(),
     isUser: true,
@@ -111,7 +156,12 @@ const sendMessage = async (text: string) => {
           fileUrl: attachedFile.fileUrl,
         }
       : undefined,
-  });
+  };
+
+  messages.value.push(userMessage);
+
+  // 立即保存用户消息
+  await saveMessageToHistory(userMessage);
 
   input.value = "";
   isLoading.value = true;
@@ -120,12 +170,14 @@ const sendMessage = async (text: string) => {
   senderRef.value?.clearUploadedFiles();
 
   try {
-    messages.value.push({
+    const aiMessage: Message = {
       id: Date.now() + 1,
       text: "",
       isUser: false,
       reasoning_content: enableDeepThinking.value ? "" : undefined,
-    });
+    };
+
+    messages.value.push(aiMessage);
 
     const lastMsg = messages.value[messages.value.length - 1];
     if (!lastMsg) throw new Error("Message initialization failed");
@@ -157,6 +209,8 @@ const sendMessage = async (text: string) => {
         if (msg.data === "[DONE]") {
           console.log("Stream finished");
           isLoading.value = false;
+          // 流式响应完成后保存AI回复
+          saveAllMessagesToHistory();
           return;
         }
 
@@ -187,19 +241,41 @@ const sendMessage = async (text: string) => {
     console.error("Chat Error:", error);
 
     // 动态导入 ElMessage
-    const { ElMessage } = await import('element-plus');
+    const { ElMessage } = await import("element-plus");
     ElMessage.error(error.message || "发送失败，请稍后重试");
 
-    messages.value.push({
+    const errorMessage: Message = {
       id: Date.now() + 1,
       text: "抱歉，出错了，请稍后再试。",
       isUser: false,
-    });
+    };
+
+    messages.value.push(errorMessage);
     isLoading.value = false;
+
+    // 保存错误消息
+    await saveMessageToHistory(errorMessage);
   }
 };
 
-onMounted(() => {
+// 加载会话
+const loadConversationById = async (id: string) => {
+  const conversation = await chatHistoryStore.loadConversation(id);
+  if (conversation) {
+    // 将 ChatMessage 转换为 Message
+    messages.value = conversation.messages.map((msg) => ({
+      id: msg.id,
+      text: msg.text,
+      isUser: msg.isUser,
+      reasoning_content: msg.reasoning_content,
+      attachedFile: msg.attachedFile,
+    }));
+  }
+};
+
+// 处理会话加载
+const handleConversationLoad = async () => {
+  const conversationId = route.query.conversationId as string;
   const query = route.query.q as string;
   const reasoning = route.query.reasoning as string;
 
@@ -207,12 +283,41 @@ onMounted(() => {
     enableDeepThinking.value = true;
   }
 
+  // 如果有关联ID，加载会话
+  if (conversationId) {
+    await loadConversationById(conversationId);
+    // 清除 query param
+    router.replace({ query: {} });
+    return;
+  }
+
+  // 如果有查询参数，发送新消息
   if (query) {
     input.value = query;
     sendMessage(query);
     // Clear query param
     router.replace({ query: {} });
   }
+};
+
+// 监听路由参数变化（特别是 conversationId）
+watch(
+  () => route.query.conversationId,
+  async (newId, oldId) => {
+    // 只有当 conversationId 真正变化时才处理
+    if (newId && newId !== oldId) {
+      await loadConversationById(newId as string);
+      // 清除 query param
+      router.replace({ query: {} });
+    }
+  }
+);
+
+onMounted(async () => {
+  // 初始化历史记录存储
+  await chatHistoryStore.init();
+  // 处理初始加载
+  await handleConversationLoad();
 });
 </script>
 
@@ -455,5 +560,4 @@ html:not(.dark) .send-btn-wrapper {
 :deep(.el-ai-thinking__content) {
   padding: 15px;
 }
-
 </style>
