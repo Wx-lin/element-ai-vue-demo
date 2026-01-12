@@ -1,6 +1,12 @@
 <template>
   <div class="common-sender-wrapper">
     <div class="input-container-wrapper">
+      <div v-if="uploadedFiles.length > 0" class="uploaded-files-preview">
+        <ElAFilesCard
+          v-model="uploadedFiles"
+          @update:modelValue="uploadedFiles = $event"
+        />
+      </div>
       <ElASender
         v-model="inputValue"
         :placeholder="placeholder"
@@ -8,15 +14,6 @@
         :loading="loading"
         @send="handleSend"
       >
-        <template #action-list v-if="uploadedFiles.length > 0">
-          <div class="uploaded-files-preview">
-            <ElAFilesCard
-              v-model="uploadedFiles"
-              @update:modelValue="uploadedFiles = $event"
-            />
-          </div>
-        </template>
-
         <template #prefix>
           <div class="prefix-controls">
             <div class="file-upload-controls">
