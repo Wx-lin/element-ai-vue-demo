@@ -19,52 +19,64 @@
         </template>
 
         <template #prefix>
-          <div class="sender-controls" role="toolbar" aria-label="消息发送选项">
-            <button
-              v-if="useButtonWrapper"
-              class="deep-thinking-toggle"
-              :class="{ active: enableDeepThinking }"
-              @click.stop="enableDeepThinking = !enableDeepThinking"
-              @mousedown.stop
-              type="button"
-              :aria-label="enableDeepThinking ? '关闭深度思考' : '开启深度思考'"
-              :aria-pressed="enableDeepThinking"
-            >
-              <SvgIcon name="thinking" :size="20" />
-            </button>
-            <div
-              v-else
-              class="deep-thinking-icon"
-              :class="{ active: enableDeepThinking }"
-              @click.stop="enableDeepThinking = !enableDeepThinking"
-              @mousedown.stop
-            >
-              <SvgIcon name="thinking" :size="20" />
+          <div class="prefix-controls">
+            <div class="file-upload-controls">
+              <ElAFilesUpload
+                v-model="uploadedFiles"
+                :multiple="false"
+                :accept="['.pdf', '.docx', '.doc', '.png', '.jpg']"
+                :maxFileLength="1"
+                :fileSizeLimit="10"
+                :onUpload="handleFileUpload"
+                :onErrorMessage="handleFileError"
+              >
+                <button
+                  v-if="useButtonWrapper"
+                  class="file-upload-toggle"
+                  type="button"
+                  aria-label="上传文件"
+                >
+                  <SvgIcon name="attachment" :size="18" />
+                </button>
+                <div v-else class="file-upload-icon">
+                  <SvgIcon name="attachment" :size="18" />
+                </div>
+              </ElAFilesUpload>
             </div>
-          </div>
 
-          <div class="file-upload-controls">
-            <ElAFilesUpload
-              v-model="uploadedFiles"
-              :multiple="false"
-              :accept="['.pdf', '.docx', '.doc', '.png', '.jpg']"
-              :maxFileLength="1"
-              :fileSizeLimit="10"
-              :onUpload="handleFileUpload"
-              :onErrorMessage="handleFileError"
+            <div class="control-separator"></div>
+
+            <div
+              class="sender-controls"
+              role="toolbar"
+              aria-label="消息发送选项"
             >
               <button
                 v-if="useButtonWrapper"
-                class="file-upload-toggle"
+                class="deep-thinking-toggle"
+                :class="{ active: enableDeepThinking }"
+                @click.stop="enableDeepThinking = !enableDeepThinking"
+                @mousedown.stop
                 type="button"
-                aria-label="上传文件"
+                :aria-label="
+                  enableDeepThinking ? '关闭深度思考' : '开启深度思考'
+                "
+                :aria-pressed="enableDeepThinking"
               >
-                <SvgIcon name="image-upload" :size="20" />
+                <SvgIcon name="thinking" :size="20" />
+                <span class="deep-thinking-text">深度思考</span>
               </button>
-              <div v-else class="file-upload-icon">
-                <SvgIcon name="image-upload" :size="18" />
+              <div
+                v-else
+                class="deep-thinking-icon"
+                :class="{ active: enableDeepThinking }"
+                @click.stop="enableDeepThinking = !enableDeepThinking"
+                @mousedown.stop
+              >
+                <SvgIcon name="thinking" :size="20" />
+                <span class="deep-thinking-text">深度思考</span>
               </div>
-            </ElAFilesUpload>
+            </div>
           </div>
         </template>
       </ElASender>
@@ -202,7 +214,7 @@ defineExpose({
 .input-container-wrapper {
   background-color: var(--input-bg-color);
   border: 1px solid var(--input-border-color);
-  border-radius: 16px;
+  border-radius: 24px;
   padding: 16px;
   transition: border-color 0.3s;
   position: relative;
@@ -212,25 +224,49 @@ defineExpose({
   }
 }
 
+.prefix-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 8px;
+}
+
+.control-separator {
+  width: 1px;
+  height: 16px;
+  background-color: #e5e7eb;
+  margin: 0 8px;
+}
+
 .sender-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
 }
 
 // 深度思考按钮样式 - 图标版本 (Home.vue)
 .deep-thinking-icon {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 16px;
   cursor: pointer;
-  color: var(--text-color-secondary);
+  color: var(--text-color);
   transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 500;
 
   &:hover {
-    color: var(--text-color);
-    background-color: var(--fill-color-light);
+    color: var(--el-color-primary);
+    background-color: var(--el-color-primary-light-9);
   }
 
   &.active {
     color: var(--el-color-primary);
+  }
+
+  .deep-thinking-text {
+    white-space: nowrap;
   }
 }
 
@@ -239,9 +275,9 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
+  padding: 4px 12px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: 16px;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -250,10 +286,16 @@ defineExpose({
   position: relative;
   z-index: 20;
   pointer-events: auto;
+  gap: 4px;
+  font-size: 14px;
+
+  .deep-thinking-text {
+    white-space: nowrap;
+  }
 
   &:hover {
-    color: var(--text-color);
-    background-color: var(--fill-color-light);
+    color: var(--el-color-primary);
+    background-color: var(--el-color-primary-light-9);
     transform: translateY(-1px);
   }
 
@@ -276,11 +318,15 @@ defineExpose({
 .file-upload-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
 }
 
 // 文件上传图标版本 (Home.vue)
 .file-upload-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 50%;
   cursor: pointer;
   color: var(--text-color-secondary);
   transition: all 0.2s ease;
@@ -296,8 +342,6 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
   border-radius: 8px;
   border: none;
   background: transparent;
