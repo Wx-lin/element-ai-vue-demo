@@ -20,6 +20,7 @@
             class="thinking-container"
           >
             <ElAThinking
+              v-model="msg.isThinkingExpanded"
               title="深度思考"
               style="margin-bottom: 30px; width: 800px"
             >
@@ -79,6 +80,7 @@ interface Message {
   text: string;
   isUser: boolean;
   reasoning_content?: string;
+  isThinkingExpanded?: boolean;
   attachedFile?: {
     fileId: string;
     fileName: string;
@@ -175,6 +177,7 @@ const sendMessage = async (text: string) => {
       text: "",
       isUser: false,
       reasoning_content: enableDeepThinking.value ? "" : undefined,
+      isThinkingExpanded: enableDeepThinking.value ? true : undefined,
     };
 
     messages.value.push(aiMessage);
@@ -191,7 +194,7 @@ const sendMessage = async (text: string) => {
       },
       body: JSON.stringify({
         message: text.trim(),
-        isReasoningEnabled: true,
+        isReasoningEnabled: enableDeepThinking.value,
         attachedFile: attachedFile,
       }),
       signal: ctrl.signal,
@@ -209,6 +212,10 @@ const sendMessage = async (text: string) => {
         if (msg.data === "[DONE]") {
           console.log("Stream finished");
           isLoading.value = false;
+          // 思考结束，收起思考内容
+          if (lastMsg.isThinkingExpanded) {
+            lastMsg.isThinkingExpanded = false;
+          }
           // 流式响应完成后保存AI回复
           saveAllMessagesToHistory();
           return;
@@ -221,6 +228,7 @@ const sendMessage = async (text: string) => {
           if (delta?.reasoning_content) {
             if (lastMsg.reasoning_content === undefined) {
               lastMsg.reasoning_content = "";
+              lastMsg.isThinkingExpanded = true;
             }
             lastMsg.reasoning_content += delta.reasoning_content;
           }
